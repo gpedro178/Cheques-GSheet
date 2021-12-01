@@ -1,3 +1,6 @@
 Conectores.py
 DatosLogin.py
 quickstart.json
+*.pyc
+*.png
+*.jpg

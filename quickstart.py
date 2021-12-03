@@ -22,8 +22,8 @@ import pandas as pd
 from apscheduler.schedulers.background import BackgroundScheduler
 from openpyxl import load_workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
-from openpyxl.styles import NamedStyle
-from openpyxl.styles import Font, Fill
+#from openpyxl.styles import NamedStyle
+#from openpyxl.styles import Font, Fill
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 import logging
@@ -67,7 +67,7 @@ def _new_Data():
         SET NOCOUNT ON --Needed for Pandas query due to temp list @lista
 
         DECLARE @fecha as date
-        SET @fecha = DATEADD(DAY,-10,CAST(getdate() as date))
+        SET @fecha = DATEADD(DAY,-7,CAST(getdate() as date))
     
         SELECT 
             RTRIM(CR.[UEN]) AS 'UEN'
@@ -106,7 +106,7 @@ def _new_Data():
         left join Rumaos.dbo.Vendedores as V
             ON FC.NROVEND = V.NROVEND
         where (CR.mediopago = 4 OR CR.nrocheque <> 0)
-        and RV.FECHASQL >= '20211202'
+        and RV.FECHASQL >= @fecha
         order by CR.UEN,RV.FECHASQL
         """
         ,conexMSSQL
@@ -130,26 +130,35 @@ def _new_Data():
             }
         )
        
-                
+        # Replace NaN with ""
+        df_cheques = df_cheques.fillna("")
+
         # Concatenate control DF with the newly extracted DF
-        merged = pd.concat([
+        df_merged = pd.concat([
             df_control.reset_index()
             , df_cheques.reset_index()
         ])
 
         # Remove column "index"
-        merged = merged.drop(columns=["index"])
+        df_merged = df_merged.drop(columns=["index"])
         
         # Drop all duplicates using the "HASH" column
-        df_newRows = merged.drop_duplicates(["HASH"], keep=False)        
+        df_merged = df_merged.drop_duplicates(["HASH"], keep=False)
         
-        # Replace NaN with ""
-        df_newRows = df_newRows.fillna("")
+        # Filter rows already in the control file
+        df_newRows = df_merged[df_merged["CONTROL"] != 1]
+
+        # Replace NaN in "CONTROL" column with "1"
+        df_newRows = df_newRows.fillna(value={"CONTROL":1})
                
         
         # If there are no new rows return empty DataFrame
         if len(df_newRows.index) == 0:
+
+            df_newRows = df_newRows.drop(columns=["CONTROL"])
+
             return df_newRows
+
 
         # If we have rows...    
         else:
@@ -176,14 +185,19 @@ def _new_Data():
             wBook.save(ubic + nombreExcel)
             wBook.close()
 
+            # Drop column "CONTROL"...
+            df_newRows = df_newRows.drop(columns=["CONTROL"])
+
             # and return df with the new rows
             return df_newRows
 
 
-    # If we dont have the control file        
+    # If we dont have the control file...
     else:
-        # Create the control file with the newly extracted DF
-        
+        # Add a control column
+        df_cheques["CONTROL"] = 1
+
+        # Create the control file with the newly extracted DF        
         df_cheques.to_excel(
             ubic + nombreExcel
             , sheet_name="Cheques"
@@ -193,6 +207,10 @@ def _new_Data():
             , engine="openpyxl"
         )
 
+        # Drop the "CONTROL" column
+        df_cheques = df_cheques.drop(columns=["CONTROL"])
+
+        # and return df with the new rows
         return df_cheques
 
 
@@ -223,12 +241,12 @@ def _write_sheet(df:pd.DataFrame):
     if len(df.index) > 0:
         # To input data into a Google sheet we need to transform it 
         # into an array
-        dfHeaders = df.columns.values.tolist()
+        df_headers = df.columns.values.tolist()
 
         # Getting the headers array
-        dfHeadersArray = [dfHeaders]
+        df_headersArray = [df_headers]
 
-        dfData = df.values.tolist()
+        df_data = df.values.tolist()
 
         # The Google API library will transform the values list to a JSON but 
         # this trigger a "TypeError: Object of type date is not JSON
@@ -236,25 +254,19 @@ def _write_sheet(df:pd.DataFrame):
         
         # To fix the error we transform the list into a json using
         # "default=str" to get all the dates like a string.
-        dfData = json.dumps(dfData, default=str)
+        df_data = json.dumps(df_data, default=str)
 
         # Using the Json as an input to write the sheet will raise
         # an "Invalid Value" error so we transform it again to a Dataframe
-        dfData = pd.read_json(dfData)
+        df_data = pd.read_json(df_data)
 
         # And then to a list again ready to be written on the Google Sheet
-        dfData = dfData.values.tolist()
-
-# TODO: fix duplicate dropping
-#####################################################################
-        raise SystemExit()
-#####################################################################
-
+        df_data = df_data.values.tolist()
 
         # Values and how to load them in the sheet
         value_range_body = {
             "majorDimension": "ROWS", # Write data in rows instead of columns
-            "values": dfData
+            "values": df_data
         }
 
         # Make a request to append data in the selected sheet and range

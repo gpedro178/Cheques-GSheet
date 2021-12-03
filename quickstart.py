@@ -16,7 +16,7 @@ import time
 # Allow imports from the top folder
 #sys.path.insert(0,str(pathlib.Path(__file__).parent.parent))
 
-
+import datetime as dt
 import json
 import pandas as pd
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -225,7 +225,7 @@ def _write_sheet(df:pd.DataFrame):
 
     # Scopes will limit what we can do with the sheet
     SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-    SERVICE_ACCOUNT_FILE = ".\quickstart.json"
+    SERVICE_ACCOUNT_FILE = ubic + "quickstart.json"
 
     # Credentials and service for the Sheets API
     creds = service_account.Credentials.from_service_account_file(
@@ -293,27 +293,29 @@ def main():
     def _for_job():
         _write_sheet(_new_Data())
         return
-    _for_job()
-    # # Create background scheduler
-    # sched = BackgroundScheduler(daemon=True)
+    
+    # Create background scheduler
+    sched = BackgroundScheduler(daemon=True)
 
-    # # Add job to scheduler and define interval to be executed
-    # sched.add_job(
-    #     _for_job
-    #     , name="GSheet_updater"
-    #     , trigger="interval"
-    #     , seconds=30 
-    # )
+    # Add job to scheduler and define interval to be executed
+    # start_date will
+    sched.add_job(
+        _for_job
+        , name="GSheet_updater"
+        , trigger="interval"
+        , minutes=15
+        , start_date=(dt.datetime.now() - dt.timedelta(minutes=14, seconds=45))
+    )
 
-    # # Start Scheduler, can be stopped with Ctrl-C
-    # sched.start()
+    # Start Scheduler, can be stopped with Ctrl-C
+    sched.start()
 
-    # # Keeping alive thread for background scheduler
-    # try:
-    #     while True:
-    #         time.sleep(30)
-    # except:
-    #     sched.shutdown()
+    # Keeping alive thread for background scheduler
+    try:
+        while True:
+            time.sleep(30)
+    except:
+        sched.shutdown()
 
 
 

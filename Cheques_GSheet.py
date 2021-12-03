@@ -34,16 +34,55 @@ from Conectores import conectorMSSQL
 
 
 
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        , level=logging.INFO
-)
-logger = logging.getLogger(__name__)
-
-
+######################################
 # Path and name of control file
+######################################
 ubic = str(pathlib.Path(__file__).parent) + "\\"
 nombreExcel = "Cheques_Control.xlsx"
+
+
+
+######################################
+# Basic LOGGING
+######################################
+# logging.basicConfig(
+#     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+#         , level=logging.INFO
+# )
+# logger = logging.getLogger(__name__)
+
+
+
+######################################
+# LOGGING
+######################################
+
+import logging.handlers
+FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+DATEFMT = "%Y-%m-%d %H:%M:%S"
+
+if not os.path.exists(ubic + "log"):
+    os.mkdir(ubic + "log")
+
+# set up logging to file - see previous section for more details
+logging.basicConfig(level=logging.INFO,
+                    format=FORMAT,
+                    datefmt=DATEFMT)
+# define a Handler which writes INFO messages to a log file
+filelog = logging.handlers.TimedRotatingFileHandler(
+    ubic + "log\\Cheques_GSheet.log"
+    , when="midnight"
+    , backupCount=5
+)
+filelog.setLevel(logging.INFO)
+# set a format
+formatter = logging.Formatter(fmt=FORMAT, datefmt=DATEFMT)
+# tell the handler to use this format
+filelog.setFormatter(formatter)
+# add the handler to the root logger
+logging.getLogger("").addHandler(filelog)
+logger = logging.getLogger(__name__)
+
 
 
 def _new_Data():
@@ -289,11 +328,26 @@ def _write_sheet(df:pd.DataFrame):
 
 def main():
     
+    
+
     # Create function to be called for scheduler job
     def _for_job():
+
+        # Timer
+        tiempoInicio = pd.to_datetime("today")
+
         _write_sheet(_new_Data())
+
+        # Timer
+        tiempoFinal = pd.to_datetime("today")
+        logger.info(
+            "\nCheques_GSheet Updater"
+            + "\nTiempo de Ejecucion Total: "
+            + str(tiempoFinal-tiempoInicio)
+        )
         return
     
+
     # Create background scheduler
     sched = BackgroundScheduler(daemon=True)
 

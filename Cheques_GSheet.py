@@ -341,7 +341,7 @@ def main():
         # Timer
         tiempoFinal = pd.to_datetime("today")
         logger.info(
-            "\nCheques_GSheet Updater"
+            "Cheques_GSheet Updater"
             + "\nTiempo de Ejecucion Total: "
             + str(tiempoFinal-tiempoInicio)
         )

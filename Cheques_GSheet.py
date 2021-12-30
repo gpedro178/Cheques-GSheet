@@ -28,8 +28,8 @@ from googleapiclient.discovery import build
 from google.oauth2 import service_account
 import logging
 
-
-from DatosLogin import login, googleSheet_cheques
+# DatosLogin has the data of the SQL Server and the Google Sheet
+from DatosLogin import loginSgesCloud, googleSheet_cheques
 from Conectores import conectorMSSQL
 
 
@@ -99,7 +99,7 @@ def _new_Data():
     # made with rows extracted from the Google Sheet to avoid duplicates
     # due to possible errors when creating the .xlsx file
 
-    conexMSSQL = conectorMSSQL(login)
+    conexMSSQL = conectorMSSQL(loginSgesCloud)
 
     df_cheques = pd.read_sql(
         """

@@ -270,7 +270,7 @@ def _write_sheet(df:pd.DataFrame):
     creds = service_account.Credentials.from_service_account_file(
                 SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 
-    service = build('sheets', 'v4', credentials=creds)
+    service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
 
     # Call the Sheets API
     sheet = service.spreadsheets()

@@ -16,7 +16,7 @@ import pandas as pd
 # import dataframe_image as dfi
 # from PIL import Image
 
-from DatosLogin import login
+from DatosLogin import loginSgesCloud
 from Conectores import conectorMSSQL
 
 import logging
@@ -41,7 +41,7 @@ def cheques_ayer():
     # Timer
     tiempoInicio = pd.to_datetime("today")
 
-    conexMSSQL = conectorMSSQL(login)
+    conexMSSQL = conectorMSSQL(loginSgesCloud)
 
     df_cheques = pd.read_sql(
         """

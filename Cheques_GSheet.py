@@ -326,25 +326,82 @@ def _write_sheet(df:pd.DataFrame):
         logger.info("NO NEW ROWS")
 
 
+
+####################################################################
+# Test connection to GSheet
+####################################################################
+
+def _test_conex(spreadsheetID, range):
+    """
+    Will read the selected range of a sheet from GoogleSheet and will return
+    a dataframe. NOTE: dates will be imported as formatted strings and should
+    be transformed accordingly.
+    ARGS: \\
+    spreadsheetID: can be obtained from the share link. Example: 
+    https://docs.google.com/spreadsheets/d/<SpreadSheetID>/edit?usp=sharing \\
+    range: range of a sheet to read in A1 notation. Example: "Dólar!A:E"
+    """
+
+    # Scopes will limit what we can do with the sheet
+    SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'] # Read Only
+    SERVICE_ACCOUNT_FILE = \
+        str(pathlib.Path(__file__).parent.parent) + "\\quickstart.json"
+
+    # Credentials and service for the Sheets API
+    creds = service_account.Credentials.from_service_account_file(
+                SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+
+    service = build('sheets', 'v4', credentials=creds, cache_discovery=False)
+
+    # Call the Sheets API
+    sheet = service.spreadsheets()
+
+
+    request = sheet.values().get(
+        spreadsheetId=spreadsheetID # Spreadsheet ID
+        , range=range
+            # # valueRenderOption default to "FORMATTED_VALUE", it get strings
+        , valueRenderOption="UNFORMATTED_VALUE" # Will get numbers like numbers
+            # # dateTimeRenderOption default to "SERIAL_NUMBER" unless 
+            # # valueRenderOption is "FORMATTED_VALUE"
+        , dateTimeRenderOption="FORMATTED_STRING" # Will get dates as string
+    )
+
+    # Run the request
+    response = request.execute()
+
+
+
+####################################################################
+# FUNCTION TO RUN MODULE
+####################################################################
+
 def main():
-    
-    
+        
 
     # Create function to be called for scheduler job
     def _for_job():
+        try:
+            # Testing connection to avoid dupes in the control file in case of
+            # failed conex
+            _test_conex(googleSheet_cheques, "'Hoja 1'!A1:D100")
 
-        # Timer
-        tiempoInicio = pd.to_datetime("today")
+            # Timer
+            tiempoInicio = pd.to_datetime("today")
 
-        _write_sheet(_new_Data())
+            _write_sheet(_new_Data())
 
-        # Timer
-        tiempoFinal = pd.to_datetime("today")
-        logger.info(
-            "Cheques_GSheet Updater"
-            + "\nTiempo de Ejecucion Total: "
-            + str(tiempoFinal-tiempoInicio)
-        )
+            # Timer
+            tiempoFinal = pd.to_datetime("today")
+            logger.info(
+                "Cheques_GSheet Updater"
+                + "\nTiempo de Ejecucion Total: "
+                + str(tiempoFinal-tiempoInicio)
+            )
+
+        except:
+            logger.error("NO CONNECTION")
+
         return
     
 

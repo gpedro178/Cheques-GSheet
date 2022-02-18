@@ -345,7 +345,7 @@ def _test_conex(spreadsheetID, range):
     # Scopes will limit what we can do with the sheet
     SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'] # Read Only
     SERVICE_ACCOUNT_FILE = \
-        str(pathlib.Path(__file__).parent.parent) + "\\quickstart.json"
+        str(pathlib.Path(__file__).parent) + "\\quickstart.json"
 
     # Credentials and service for the Sheets API
     creds = service_account.Credentials.from_service_account_file(

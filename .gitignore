@@ -5,3 +5,4 @@ quickstart.json
 *.jpg
 *.xlsx
 *.log
+Cheques_GSheet.log.*
